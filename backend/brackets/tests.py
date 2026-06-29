@@ -21,6 +21,8 @@ class BracketTests(TestCase):
         self.assertEqual(slots[97]["previous_slot_two"], "r16-01")
         self.assertEqual(slots[104]["previous_slot_one"], "sf-01")
         self.assertEqual(slots[104]["previous_slot_two"], "sf-02")
+        self.assertEqual(slots[73]["venue_name"], "SoFi Stadium")
+        self.assertEqual(slots[73]["venue_city"], "Inglewood, CA")
 
     def test_espn_sync_fetches_each_knockout_date(self):
         with mock.patch("brackets.services.espn.fetch_scoreboard", return_value=None) as fetch:
@@ -41,6 +43,10 @@ class BracketTests(TestCase):
                     "date": "2026-06-28T19:00Z",
                     "competitions": [
                         {
+                            "venue": {
+                                "fullName": "SoFi Stadium",
+                                "address": {"city": "Inglewood", "state": "California"},
+                            },
                             "competitors": [
                                 {
                                     "team": {
@@ -76,6 +82,10 @@ class BracketTests(TestCase):
                     "date": "2026-06-28T19:00Z",
                     "competitions": [
                         {
+                            "venue": {
+                                "fullName": "SoFi Stadium",
+                                "address": {"city": "Inglewood", "state": "CA"},
+                            },
                             "competitors": [
                                 {
                                     "score": "0",
@@ -99,6 +109,33 @@ class BracketTests(TestCase):
         self.assertEqual(parsed[0]["slot_key"], "r32-01")
         self.assertEqual(parsed[0]["match_number"], 73)
         self.assertEqual(parsed[0]["winner"]["abbreviation"], "CAN")
+        self.assertEqual(parsed[0]["venue_name"], "SoFi Stadium")
+        self.assertEqual(parsed[0]["venue_city"], "Inglewood, CA")
+
+    def test_espn_merge_keeps_canonical_fallback_venue_format(self):
+        merged = espn._merge_with_fallback(
+            [
+                {
+                    "slot_key": "r32-01",
+                    "match_number": 73,
+                    "round_key": "r32",
+                    "round_name": "Round of 32",
+                    "points": 25,
+                    "position": 1,
+                    "team_one": {"espn_id": "RSA", "abbreviation": "RSA", "display_name": "South Africa"},
+                    "team_two": {"espn_id": "CAN", "abbreviation": "CAN", "display_name": "Canada"},
+                    "winner": {"espn_id": "CAN", "abbreviation": "CAN", "display_name": "Canada"},
+                    "is_complete": True,
+                    "venue_name": "SoFi Stadium",
+                    "venue_city": "Inglewood, California, USA",
+                }
+            ]
+        )
+        slot = {item["slot_key"]: item for item in merged}["r32-01"]
+
+        self.assertEqual(slot["venue_name"], "SoFi Stadium")
+        self.assertEqual(slot["venue_city"], "Inglewood, CA")
+        self.assertTrue(slot["is_complete"])
 
     def test_slug_collision_uses_title(self):
         first = Bracket.objects.create(title="Jared's Bracket")

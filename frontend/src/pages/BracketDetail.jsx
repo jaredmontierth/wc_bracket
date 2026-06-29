@@ -15,6 +15,7 @@ export default function BracketDetail({
 }) {
   const [bracket, setBracket] = useState(null);
   const [picks, setPicks] = useState({});
+  const [titleDraft, setTitleDraft] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +28,7 @@ export default function BracketDetail({
         if (!mounted) return;
         setBracket(data);
         setPicks(pickMapFromArray(data.picks));
+        setTitleDraft(data.title);
       })
       .catch((err) => setError(err.message));
     return () => {
@@ -40,13 +42,14 @@ export default function BracketDetail({
     try {
       const updated = await updateBracket(
         slug,
-        bracket.title,
+        titleDraft,
         picksArrayFromMap(picks),
         editToken,
         developerToken
       );
       setBracket(updated);
       setPicks(pickMapFromArray(updated.picks));
+      setTitleDraft(updated.title);
       setEditing(false);
       await refreshLeaderboard(false);
     } catch (err) {
@@ -78,8 +81,18 @@ export default function BracketDetail({
     <section className="page-panel wide">
       <div className="detail-header">
         <div>
-          <h1>{bracket.title}</h1>
-          <p>{bracket.score.possible_remaining} points still undecided</p>
+          {editing ? (
+            <label className="detail-title-field">
+              <span>Bracket name</span>
+              <input
+                value={titleDraft}
+                onChange={(event) => setTitleDraft(event.target.value)}
+                placeholder="Bracket name"
+              />
+            </label>
+          ) : (
+            <h1>{bracket.title}</h1>
+          )}
         </div>
         <div className="detail-actions">
           <ScorePill score={bracket.score} />
@@ -94,14 +107,20 @@ export default function BracketDetail({
                   Autofill
                 </button>
               ) : null}
-            <button className="primary-button" disabled={saving} onClick={save}>
+            <button className="primary-button" disabled={saving || !titleDraft.trim()} onClick={save}>
               <Save size={18} />
               Save
             </button>
             </>
           ) : bracket.can_edit ? (
             <>
-            <button className="secondary-button" onClick={() => setEditing(true)}>
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setTitleDraft(bracket.title);
+                setEditing(true);
+              }}
+            >
               <Edit3 size={18} />
               Edit
             </button>

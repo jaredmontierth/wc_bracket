@@ -24,6 +24,8 @@ def match_payload(match):
         "previous_slot_one": match.previous_slot_one,
         "previous_slot_two": match.previous_slot_two,
         "starts_at": match.starts_at.isoformat() if match.starts_at else None,
+        "venue_name": match.venue_name,
+        "venue_city": match.venue_city,
         "status": match.status,
         "is_complete": match.is_complete,
         "source": match.source,

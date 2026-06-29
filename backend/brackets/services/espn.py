@@ -29,6 +29,28 @@ ROUND_ALIASES = {
 
 ROUND_ORDER = {"r32": 1, "r16": 2, "qf": 3, "sf": 4, "final": 5}
 
+REGION_ABBREVIATIONS = {
+    "Alberta": "AB",
+    "British Columbia": "BC",
+    "California": "CA",
+    "Ciudad de Mexico": "CDMX",
+    "Ciudad de México": "CDMX",
+    "Florida": "FL",
+    "Georgia": "GA",
+    "Massachusetts": "MA",
+    "Mexico City": "CDMX",
+    "Missouri": "MO",
+    "New Jersey": "NJ",
+    "Nuevo Leon": "NL",
+    "Nuevo León": "NL",
+    "Ontario": "ON",
+    "Pennsylvania": "PA",
+    "Quebec": "QC",
+    "Québec": "QC",
+    "Texas": "TX",
+    "Washington": "WA",
+}
+
 
 def sync_matches():
     parsed_slots = []
@@ -98,6 +120,7 @@ def parse_scoreboard(payload):
                 winner = _team_from_competitor(competitor)
 
         status = competition.get("status", {}).get("type", {})
+        venue = _venue_from_competition(competition)
         parsed.append(
             {
                 "slot_key": fallback_slot["slot_key"],
@@ -118,6 +141,8 @@ def parse_scoreboard(payload):
                 "source": "espn",
                 "source_event_id": str(event.get("id", "")),
                 "starts_at": parse_datetime(event.get("date", "")) if event.get("date") else None,
+                "venue_name": venue["name"],
+                "venue_city": venue["city"],
             }
         )
 
@@ -142,6 +167,8 @@ def upsert_slots(slots):
                 "previous_slot_one": slot.get("previous_slot_one", ""),
                 "previous_slot_two": slot.get("previous_slot_two", ""),
                 "starts_at": slot.get("starts_at"),
+                "venue_name": slot.get("venue_name", ""),
+                "venue_city": slot.get("venue_city", ""),
                 "status": slot.get("status", ""),
                 "is_complete": slot.get("is_complete", False),
                 "source": slot.get("source", "fallback"),
@@ -163,7 +190,12 @@ def _merge_with_fallback(parsed_slots):
     by_slot = {slot["slot_key"]: slot for slot in fallback_slots()}
     for parsed_slot in parsed_slots:
         fallback_slot = by_slot.get(parsed_slot["slot_key"], {})
-        by_slot[parsed_slot["slot_key"]] = {**fallback_slot, **parsed_slot}
+        merged = {**fallback_slot, **parsed_slot}
+        if fallback_slot.get("venue_name"):
+            merged["venue_name"] = fallback_slot["venue_name"]
+        if fallback_slot.get("venue_city"):
+            merged["venue_city"] = fallback_slot["venue_city"]
+        by_slot[parsed_slot["slot_key"]] = merged
     return list(by_slot.values())
 
 
@@ -269,6 +301,31 @@ def _match_number_from_event(event, competition):
         if match:
             return int(match.group(1))
     return None
+
+
+def _venue_from_competition(competition):
+    venue = competition.get("venue") or {}
+    address = venue.get("address") or {}
+    city = address.get("city", "")
+    region = _region_abbreviation(address.get("state") or address.get("country") or "")
+    city_parts = [
+        city,
+        region,
+    ]
+    return {
+        "name": venue.get("fullName") or venue.get("displayName") or "",
+        "city": ", ".join(part for part in city_parts if part),
+    }
+
+
+def _region_abbreviation(value):
+    if not value:
+        return ""
+    if value.upper() in {"USA", "US", "UNITED STATES", "CAN", "CANADA", "MEX", "MEXICO"}:
+        return ""
+    if len(value) <= 4 and value.upper() == value:
+        return value
+    return REGION_ABBREVIATIONS.get(value, value)
 
 
 def _upsert_team(team_payload):

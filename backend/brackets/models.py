@@ -27,6 +27,8 @@ class Match(models.Model):
     previous_slot_one = models.CharField(max_length=40, blank=True)
     previous_slot_two = models.CharField(max_length=40, blank=True)
     starts_at = models.DateTimeField(null=True, blank=True)
+    venue_name = models.CharField(max_length=160, blank=True)
+    venue_city = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=40, blank=True)
     is_complete = models.BooleanField(default=False)
     source = models.CharField(max_length=20, default="fallback")

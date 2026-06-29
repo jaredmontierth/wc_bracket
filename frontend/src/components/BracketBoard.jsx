@@ -8,6 +8,7 @@ import {
 } from "../bracket/structure.js";
 
 export default function BracketBoard({ matches, picks, onPick, scoringPicks = [] }) {
+  const pickingMode = Boolean(onPick);
   const matchesByRound = groupMatches(matches);
   const scoringBySlot = scoringPicks.reduce((map, pick) => {
     map[pick.slot_key] = pick;
@@ -37,8 +38,13 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                 <article className="match-card" key={match.slot_key}>
                   <div className="match-meta">
                     <span>Match {match.match_number || match.position}</span>
-                    {match.is_complete ? <strong>Final</strong> : <span>{match.status || "Scheduled"}</span>}
+                    <strong>{match.is_complete ? "Final" : formatMatchTime(match.starts_at)}</strong>
                   </div>
+                  {formatVenue(match) ? (
+                    <div className="match-details">
+                      <span>{formatVenue(match)}</span>
+                    </div>
+                  ) : null}
                   <TeamButton
                     team={teams[0]}
                     selected={selected?.espn_id === teams[0]?.espn_id}
@@ -53,7 +59,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                     result={resultClass(scoring, teams[1])}
                     onSelect={(team) => chooseWinner(match, team)}
                   />
-                  {match.is_complete && match.winner ? (
+                  {!pickingMode && match.is_complete && match.winner ? (
                     <div className="match-result">
                       Winner: {match.winner.display_name}
                       {winnerScore ? ` ${winnerScore}` : ""}
@@ -67,6 +73,22 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
       ))}
     </section>
   );
+}
+
+function formatMatchTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function formatVenue(match) {
+  return [match.venue_name, match.venue_city].filter(Boolean).join(" · ");
 }
 
 function resultClass(scoring, team) {
