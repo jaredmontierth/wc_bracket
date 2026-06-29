@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trophy, Plus, RefreshCw, Settings } from "lucide-react";
 import {
   createInvite,
-  deleteBracket,
   enableDeveloperMode,
   exportData,
   getInvites,
@@ -34,6 +33,7 @@ export default function App() {
   const [route, setRoute] = useState(routeFromLocation);
   const [tournament, setTournament] = useState({ matches: [], rounds: [] });
   const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardLiveMatch, setLeaderboardLiveMatch] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
@@ -60,6 +60,7 @@ export default function App() {
       ]);
       setTournament(tournamentData);
       setLeaderboard(leaderboardData.brackets);
+      setLeaderboardLiveMatch(leaderboardData.live_match || null);
       setSubmissionsLockedState(Boolean(leaderboardData.submissions_locked));
     } catch (err) {
       setError(err.message);
@@ -88,16 +89,6 @@ export default function App() {
       setError(err.message);
     } finally {
       setSyncing(false);
-    }
-  };
-
-  const onDeleteBracket = async (bracket) => {
-    if (!window.confirm(`Delete ${bracket.title}?`)) return;
-    try {
-      await deleteBracket(bracket.slug, "", developerToken);
-      await load(false);
-    } catch (err) {
-      setError(err.message);
     }
   };
 
@@ -236,10 +227,9 @@ export default function App() {
     return (
       <Leaderboard
         brackets={leaderboard}
+        liveMatch={leaderboardLiveMatch}
         navigate={navigate}
         loading={loading}
-        developerMode={developerMode}
-        onDelete={onDeleteBracket}
       />
     );
   }, [
@@ -248,6 +238,7 @@ export default function App() {
     navigate,
     load,
     leaderboard,
+    leaderboardLiveMatch,
     loading,
     developerMode,
     developerToken,

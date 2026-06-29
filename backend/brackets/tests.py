@@ -598,3 +598,40 @@ class BracketTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"ok": True})
+
+    def test_leaderboard_includes_live_match_and_user_picks(self):
+        canada = Team.objects.create(espn_id="CAN", abbreviation="CAN", display_name="Canada")
+        netherlands = Team.objects.create(
+            espn_id="NED", abbreviation="NED", display_name="Netherlands"
+        )
+        Match.objects.create(
+            slot_key="r16-01",
+            match_number=90,
+            round_key="r16",
+            round_name="Round of 16",
+            points=50,
+            position=1,
+            status="67'",
+            team_one=canada,
+            team_two=netherlands,
+            score_one=1,
+            score_two=0,
+        )
+        picked = Bracket.objects.create(title="Picked")
+        empty = Bracket.objects.create(title="Empty")
+        Pick.objects.create(
+            bracket=picked,
+            slot_key="r16-01",
+            team_espn_id="CAN",
+            team_abbreviation="CAN",
+            team_display_name="Canada",
+        )
+
+        response = self.client.get("/api/leaderboard/")
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["live_match"]["slot_key"], "r16-01")
+        by_title = {bracket["title"]: bracket for bracket in payload["brackets"]}
+        self.assertEqual(by_title["Picked"]["live_pick"]["team"]["display_name"], "Canada")
+        self.assertIsNone(by_title["Empty"].get("live_pick"))

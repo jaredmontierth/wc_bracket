@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import secrets
 import threading
 
@@ -8,10 +9,12 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from brackets.models import Bracket, Invite, InviteSubmission, Pick, site_settings
+from brackets.models import Bracket, Invite, InviteSubmission, Match, Pick, site_settings
 from brackets.serializers import (
     bracket_detail_payload,
     bracket_list_payload,
+    match_payload,
+    pick_payload,
     tournament_payload,
     upsert_picks,
 )
@@ -108,9 +111,34 @@ def bracket_detail_view(request, slug):
 
 def leaderboard_view(request):
     ensure_matches_available()
+    live_match = _current_live_match()
     brackets = [bracket_list_payload(bracket) for bracket in Bracket.objects.all()]
+    if live_match:
+        for bracket_payload in brackets:
+            bracket_payload["live_pick"] = _live_pick_payload(bracket_payload["id"], live_match)
     brackets.sort(key=lambda item: item["score"]["total"], reverse=True)
-    return JsonResponse({"brackets": brackets, "submissions_locked": site_settings().submissions_locked})
+    return JsonResponse(
+        {
+            "brackets": brackets,
+            "live_match": match_payload(live_match) if live_match else None,
+            "submissions_locked": site_settings().submissions_locked,
+        }
+    )
+
+
+def _current_live_match():
+    for match in Match.objects.order_by("starts_at", "position"):
+        if match.is_complete:
+            continue
+        status = (match.status or "").lower()
+        if re.search(r"live|progress|half|extra|^[1-9]\d*'?$", status):
+            return match
+    return None
+
+
+def _live_pick_payload(bracket_id, live_match):
+    pick = Pick.objects.filter(bracket_id=bracket_id, slot_key=live_match.slot_key).first()
+    return pick_payload(pick) if pick else None
 
 
 @csrf_exempt

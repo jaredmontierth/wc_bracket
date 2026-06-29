@@ -1,7 +1,6 @@
 import ScorePill from "../components/ScorePill.jsx";
-import { Trash2 } from "lucide-react";
 
-export default function Leaderboard({ brackets, navigate, loading, developerMode, onDelete }) {
+export default function Leaderboard({ brackets, liveMatch, navigate, loading }) {
   const ranks = tiedRanks(brackets);
 
   return (
@@ -10,6 +9,7 @@ export default function Leaderboard({ brackets, navigate, loading, developerMode
         <div>
           <h1>Leaderboard</h1>
         </div>
+        {liveMatch ? <LiveMatchCard match={liveMatch} /> : null}
       </div>
       <div className="leaderboard">
         {loading ? <div className="empty-state">Loading brackets...</div> : null}
@@ -18,7 +18,7 @@ export default function Leaderboard({ brackets, navigate, loading, developerMode
         ) : null}
         {brackets.map((bracket, index) => (
           <div
-            className="leader-row"
+            className={`leader-row${liveMatch ? " with-live-pick" : ""}`}
             key={bracket.slug}
             onClick={() => navigate(`/brackets/${bracket.slug}`)}
             role="button"
@@ -34,30 +34,64 @@ export default function Leaderboard({ brackets, navigate, loading, developerMode
               <span className="leader-title">{bracket.title}</span>
               <ChampionFlag team={bracket.champion_pick?.team} />
             </span>
-            <span className="remaining">
-              MAX {bracket.score.max_possible}
-            </span>
+            {liveMatch ? <LivePick pick={bracket.live_pick} /> : null}
             <ScorePill score={bracket.score} />
-            {developerMode ? (
-              <button
-                className="icon-danger-button"
-                aria-label={`Delete ${bracket.title}`}
-                title="Delete"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDelete(bracket);
-                }}
-              >
-                <Trash2 size={18} />
-              </button>
-            ) : (
-              <span className="leader-lock-space" />
-            )}
+            <span className="leader-max">
+              <span>MAX</span>
+              <strong>{bracket.score.max_possible}</strong>
+            </span>
           </div>
         ))}
       </div>
     </section>
   );
+}
+
+function LiveMatchCard({ match }) {
+  return (
+    <section className="leader-live-card" aria-label="Current live match">
+      <div className="leader-live-meta">
+        <span>Match {match.match_number || match.position}</span>
+        <strong>{liveLabel(match)}</strong>
+      </div>
+      {formatVenue(match) ? <div className="leader-live-venue">{formatVenue(match)}</div> : null}
+      <div className="leader-live-teams">
+        <LiveTeam team={match.team_one} score={match.score_one} />
+        <LiveTeam team={match.team_two} score={match.score_two} />
+      </div>
+    </section>
+  );
+}
+
+function LiveTeam({ team, score }) {
+  return (
+    <span className="leader-live-team">
+      {team?.logo_url ? <img src={team.logo_url} alt="" /> : <span className="leader-live-mark" />}
+      <span>{team?.display_name || "TBD"}</span>
+      {score !== null && score !== undefined ? <strong>{score}</strong> : null}
+    </span>
+  );
+}
+
+function LivePick({ pick }) {
+  if (!pick?.team) {
+    return <span className="leader-live-pick empty">No pick</span>;
+  }
+  return (
+    <span className="leader-live-pick" title={`Live pick: ${pick.team.display_name}`}>
+      {pick.team.logo_url ? <img src={pick.team.logo_url} alt="" /> : null}
+      <span>{pick.team.abbreviation || pick.team.display_name}</span>
+    </span>
+  );
+}
+
+function liveLabel(match) {
+  const status = (match.status || "").trim();
+  return status || "Live";
+}
+
+function formatVenue(match) {
+  return [match.venue_name, match.venue_city].filter(Boolean).join(" · ");
 }
 
 function tiedRanks(brackets) {

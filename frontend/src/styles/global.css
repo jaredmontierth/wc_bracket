@@ -224,6 +224,110 @@ p {
   overflow: hidden;
 }
 
+.leader-live-card {
+  justify-self: end;
+  background: #ffffff;
+  border: 1px solid #c90000;
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  margin-left: auto;
+  max-width: 260px;
+  padding: 10px;
+  width: min(100%, 260px);
+}
+
+.leader-live-meta,
+.leader-live-teams,
+.leader-live-team,
+.leader-live-pick {
+  align-items: center;
+  display: flex;
+}
+
+.leader-live-meta {
+  color: #53635f;
+  font-size: 13px;
+  font-weight: 800;
+  justify-content: space-between;
+}
+
+.leader-live-venue {
+  color: #7b8985;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leader-live-teams {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.leader-live-team {
+  background: #f7f9f9;
+  border: 1px solid #dce3e1;
+  border-radius: 8px;
+  gap: 7px;
+  min-height: 42px;
+  min-width: 0;
+  padding: 7px 9px;
+}
+
+.leader-live-team img,
+.leader-live-mark,
+.leader-live-pick img {
+  border-radius: 999px;
+  height: 24px;
+  object-fit: contain;
+  width: 24px;
+}
+
+.leader-live-mark {
+  background: #dce3e1;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.leader-live-pick img {
+  height: 18px;
+  width: 18px;
+}
+
+.leader-live-team span,
+.leader-live-pick span {
+  font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leader-live-team span {
+  max-width: none;
+}
+
+.leader-live-team strong {
+  font-size: 18px;
+  font-weight: 900;
+  margin-left: auto;
+  min-width: 12px;
+  text-align: right;
+}
+
+.leader-live-divider {
+  color: #7b8985;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .leader-row {
   align-items: center;
   background: #ffffff;
@@ -232,19 +336,19 @@ p {
   color: #17211f;
   display: grid;
   gap: 14px;
-  grid-template-columns: 52px minmax(220px, 1fr) auto auto 40px;
+  grid-template-columns: 52px minmax(220px, 1fr) auto auto;
   min-height: 72px;
   padding: 12px 16px;
   text-align: left;
   width: 100%;
 }
 
-.leader-row:hover {
-  background: #f8fbfa;
+.leader-row.with-live-pick {
+  grid-template-columns: 52px minmax(220px, 1fr) 90px auto auto;
 }
 
-.leader-lock-space {
-  width: 40px;
+.leader-row:hover {
+  background: #f8fbfa;
 }
 
 .rank {
@@ -262,6 +366,23 @@ p {
 .leader-main {
   display: grid;
   gap: 4px;
+}
+
+.leader-live-pick {
+  background: #f7f9f9;
+  border: 1px solid #c90000;
+  border-radius: 8px;
+  gap: 5px;
+  justify-content: center;
+  min-height: 34px;
+  min-width: 0;
+  padding: 5px 7px;
+}
+
+.leader-live-pick.empty {
+  color: #7b8985;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .leader-title {
@@ -299,12 +420,23 @@ p {
   width: 8px;
 }
 
-.remaining {
+.leader-max {
+  align-items: center;
   color: #5d6c68;
-  font-size: 13px;
-  font-weight: 800;
+  display: inline-grid;
+  font-size: 11px;
+  font-weight: 900;
+  justify-items: center;
   letter-spacing: 0;
+  line-height: 1;
+  min-width: 42px;
   text-transform: uppercase;
+}
+
+.leader-max strong {
+  color: #17211f;
+  font-size: 15px;
+  line-height: 1.1;
 }
 
 .score-pill {
@@ -844,12 +976,35 @@ p {
 
   .leader-row {
     gap: 10px 12px;
-    grid-template-columns: 42px minmax(0, 1fr) auto 36px;
+    grid-template-columns: 42px minmax(0, 1fr) auto auto;
     min-height: 96px;
     padding: 14px;
   }
 
+  .leader-row.with-live-pick {
+    grid-template-columns: 42px minmax(0, 1fr) auto auto;
+    min-height: 96px;
+  }
+
+  .leader-live-card {
+    justify-self: stretch;
+    max-width: none;
+    width: 100%;
+  }
+
+  .leader-live-team {
+    min-width: 0;
+  }
+
+  .leader-live-divider {
+    display: none;
+  }
+
   .rank {
+    grid-row: 1 / span 2;
+  }
+
+  .leader-row.with-live-pick .rank {
     grid-row: 1 / span 2;
   }
 
@@ -859,9 +1014,10 @@ p {
     grid-row: 1;
   }
 
-  .remaining {
+  .leader-live-pick {
     grid-column: 2;
     grid-row: 2;
+    min-height: 34px;
   }
 
   .leader-row .score-pill {
@@ -872,20 +1028,22 @@ p {
     padding: 8px 10px;
   }
 
+  .leader-row.with-live-pick .score-pill {
+    grid-row: 1 / span 2;
+  }
+
   .leader-row .score-pill strong {
     font-size: 18px;
   }
 
-  .leader-row .icon-danger-button,
-  .leader-lock-space {
+  .leader-max {
     align-self: center;
     grid-column: 4;
     grid-row: 1 / span 2;
-    width: 36px;
   }
 
-  .leader-row .icon-danger-button {
-    min-height: 36px;
+  .leader-row.with-live-pick .leader-max {
+    grid-row: 1 / span 2;
   }
 
   .leader-title {
