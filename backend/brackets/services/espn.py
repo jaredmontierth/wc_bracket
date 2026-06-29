@@ -217,12 +217,13 @@ def _status_label(status_payload):
         return status_type.get("description") or status_type.get("name") or ""
 
     display_clock = str(status_payload.get("displayClock") or "").strip()
-    if _is_live_clock(display_clock):
-        return display_clock
+    live_clock = _live_clock_label(display_clock)
+    if live_clock:
+        return live_clock
 
     clock = status_payload.get("clock")
     if isinstance(clock, (int, float)) and clock > 0:
-        return f"{int(clock)}'"
+        return _clock_seconds_label(clock)
 
     return status_type.get("description") or status_type.get("name") or ""
 
@@ -230,14 +231,27 @@ def _status_label(status_payload):
 def _is_live_status(status_payload):
     status_type = status_payload.get("type", {})
     description = str(status_type.get("description") or status_type.get("name") or "").lower()
-    return _is_live_clock(str(status_payload.get("displayClock") or "").strip()) or any(
+    return bool(_live_clock_label(str(status_payload.get("displayClock") or "").strip())) or any(
         phrase in description for phrase in ("live", "progress", "half", "extra")
     )
 
 
-def _is_live_clock(value):
+def _live_clock_label(value):
     normalized = value.strip()
-    return bool(normalized and normalized not in ("0'", "0:00") and re.match(r"^[1-9]\d*'?$", normalized))
+    if not normalized or normalized in ("0'", "0:00"):
+        return ""
+    if re.match(r"^[1-9]\d*'?$", normalized):
+        return normalized if normalized.endswith("'") else f"{normalized}'"
+    match = re.match(r"^(\d+):([0-5]\d)$", normalized)
+    if match:
+        total_seconds = int(match.group(1)) * 60 + int(match.group(2))
+        return _clock_seconds_label(total_seconds)
+    return ""
+
+
+def _clock_seconds_label(clock):
+    minute = max(1, int((float(clock) + 59) // 60))
+    return f"{minute}'"
 
 
 def _dedupe_slots(slots):

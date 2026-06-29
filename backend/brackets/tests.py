@@ -155,6 +155,77 @@ class BracketTests(TestCase):
         self.assertEqual(parsed[0]["score_one"], 2)
         self.assertEqual(parsed[0]["score_two"], 1)
 
+    def test_espn_parser_converts_live_seconds_clock_to_match_minute(self):
+        payload = {
+            "events": [
+                {
+                    "id": "74",
+                    "name": "Germany vs Paraguay - Match 74",
+                    "shortName": "Match 74",
+                    "date": "2026-06-29T20:30Z",
+                    "competitions": [
+                        {
+                            "competitors": [
+                                {
+                                    "score": "0",
+                                    "team": {"abbreviation": "GER", "displayName": "Germany"},
+                                },
+                                {
+                                    "score": "1",
+                                    "team": {"abbreviation": "PAR", "displayName": "Paraguay"},
+                                },
+                            ],
+                            "status": {
+                                "clock": 2700,
+                                "type": {"description": "In Progress", "completed": False},
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        parsed = espn.parse_scoreboard(payload)
+
+        self.assertEqual(parsed[0]["slot_key"], "r32-03")
+        self.assertEqual(parsed[0]["status"], "45'")
+        self.assertEqual(parsed[0]["score_one"], 0)
+        self.assertEqual(parsed[0]["score_two"], 1)
+
+    def test_espn_parser_converts_live_mmss_clock_to_match_minute(self):
+        payload = {
+            "events": [
+                {
+                    "id": "74",
+                    "name": "Germany vs Paraguay - Match 74",
+                    "shortName": "Match 74",
+                    "date": "2026-06-29T20:30Z",
+                    "competitions": [
+                        {
+                            "competitors": [
+                                {
+                                    "score": "0",
+                                    "team": {"abbreviation": "GER", "displayName": "Germany"},
+                                },
+                                {
+                                    "score": "1",
+                                    "team": {"abbreviation": "PAR", "displayName": "Paraguay"},
+                                },
+                            ],
+                            "status": {
+                                "displayClock": "45:00",
+                                "type": {"description": "In Progress", "completed": False},
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        parsed = espn.parse_scoreboard(payload)
+
+        self.assertEqual(parsed[0]["status"], "45'")
+
     def test_espn_parser_ignores_pregame_zero_clock_and_scores(self):
         payload = {
             "events": [
