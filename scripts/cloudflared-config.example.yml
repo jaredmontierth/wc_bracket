@@ -1,0 +1,7 @@
+tunnel: worldcup-bracket
+credentials-file: C:\Users\YOUR_WINDOWS_USER\.cloudflared\TUNNEL_ID.json
+
+ingress:
+  - hostname: bracket.example.com
+    service: http://127.0.0.1:8000
+  - service: http_status:404

@@ -66,3 +66,43 @@ the `BRACKET_DEV_PASSWORD` value configured in Render.
 
 The import updates existing brackets by slug, so importing the same backup again
 will refresh those brackets instead of creating duplicates.
+
+## Free Windows Hosting With Cloudflare Tunnel
+
+This path keeps the app on a Windows PC, uses local SQLite, and exposes it
+through Cloudflare Tunnel without opening router ports.
+
+### Start the App on Windows
+
+From PowerShell in the project folder:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\start-cloudflare-windows.ps1 -PublicHostname "bracket.example.com"
+```
+
+Replace `bracket.example.com` with your real Cloudflare hostname. The script
+will install dependencies, build React, run migrations, sync matches, and serve
+Django at `http://127.0.0.1:8000`.
+
+For a temporary Cloudflare quick tunnel, omit `-PublicHostname`:
+
+```powershell
+.\scripts\start-cloudflare-windows.ps1
+```
+
+### Create the Tunnel
+
+For a stable invite URL, create a named Cloudflare Tunnel and route a public
+hostname to:
+
+```text
+http://127.0.0.1:8000
+```
+
+An example config file is available at
+`scripts/cloudflared-config.example.yml`.
+
+Quick tunnels are fine for testing, but the `trycloudflare.com` URL changes
+when the tunnel restarts. Use a named tunnel plus a Cloudflare-managed hostname
+before sending invite links.
