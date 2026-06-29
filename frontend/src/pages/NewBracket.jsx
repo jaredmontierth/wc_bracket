@@ -36,7 +36,7 @@ export default function NewBracket({ tournament, navigate, developerMode, refres
             id="title"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Jared's 2026 Picks"
+            placeholder="Name"
           />
         </div>
         <div className="save-group">

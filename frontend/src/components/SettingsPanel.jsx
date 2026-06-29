@@ -67,8 +67,8 @@ export default function SettingsPanel({
   };
 
   return (
-    <div className="modal-backdrop">
-      <section className="settings-panel" aria-label="Settings">
+    <div className="modal-backdrop" onMouseDown={onClose}>
+      <section className="settings-panel" aria-label="Settings" onMouseDown={(event) => event.stopPropagation()}>
         <div className="settings-header">
           <h2>Settings</h2>
           <button className="icon-button" onClick={onClose} aria-label="Close settings">
@@ -119,7 +119,7 @@ export default function SettingsPanel({
             <div className="settings-row backup-row">
               <div>
                 <strong>Backup</strong>
-                <p>Move brackets and invite data between local and Render.</p>
+                <p>Move brackets and invite data between dev and prod.</p>
               </div>
               <div className="backup-actions">
                 <button className="secondary-button" onClick={onExportBackup}>
