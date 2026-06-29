@@ -112,6 +112,47 @@ class BracketTests(TestCase):
         self.assertEqual(parsed[0]["venue_name"], "SoFi Stadium")
         self.assertEqual(parsed[0]["venue_city"], "Inglewood, CA")
 
+    def test_espn_parser_uses_live_display_clock_for_active_matches(self):
+        payload = {
+            "events": [
+                {
+                    "id": "76",
+                    "name": "Brazil vs Japan - Match 76",
+                    "shortName": "Match 76",
+                    "date": "2026-06-29T17:00Z",
+                    "competitions": [
+                        {
+                            "venue": {
+                                "fullName": "NRG Stadium",
+                                "address": {"city": "Houston", "state": "TX"},
+                            },
+                            "competitors": [
+                                {
+                                    "score": "2",
+                                    "team": {"abbreviation": "BRA", "displayName": "Brazil"},
+                                },
+                                {
+                                    "score": "1",
+                                    "team": {"abbreviation": "JPN", "displayName": "Japan"},
+                                },
+                            ],
+                            "status": {
+                                "displayClock": "67'",
+                                "type": {"description": "In Progress", "completed": False},
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        parsed = espn.parse_scoreboard(payload)
+
+        self.assertEqual(parsed[0]["slot_key"], "r32-05")
+        self.assertEqual(parsed[0]["status"], "67'")
+        self.assertEqual(parsed[0]["score_one"], 2)
+        self.assertEqual(parsed[0]["score_two"], 1)
+
     def test_espn_merge_keeps_canonical_fallback_venue_format(self):
         merged = espn._merge_with_fallback(
             [

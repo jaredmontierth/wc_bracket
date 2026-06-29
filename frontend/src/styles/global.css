@@ -621,6 +621,10 @@ p {
   padding: 10px;
 }
 
+.match-card.live {
+  border-color: #c90000;
+}
+
 .match-meta,
 .match-result {
   align-items: center;
@@ -633,6 +637,12 @@ p {
 .match-meta {
   color: #53635f;
   font-weight: 800;
+}
+
+.live-label {
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0;
 }
 
 .match-details {
@@ -717,6 +727,16 @@ p {
   color: #5d6c68;
   font-size: 12px;
   font-weight: 800;
+}
+
+.team-score {
+  align-items: center;
+  color: #17211f;
+  display: inline-flex;
+  font-size: 18px;
+  font-weight: 900;
+  justify-content: center;
+  min-width: 18px;
 }
 
 .round-score-strip {

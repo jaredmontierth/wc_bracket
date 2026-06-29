@@ -34,12 +34,15 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
               const selected = picks[match.slot_key];
               const scoring = scoringBySlot[match.slot_key];
               const winnerScore = winnerFirstScore(match);
+              const live = isLiveMatch(match);
               return (
-                <article className="match-card" key={match.slot_key}>
+                <article className={`match-card${live ? " live" : ""}`} key={match.slot_key}>
                   <div className="match-meta">
                     <span>Match {match.match_number || match.position}</span>
                     {!pickingMode ? (
-                      <strong>{match.is_complete ? "Final" : formatMatchTime(match.starts_at)}</strong>
+                      <strong className={live ? "live-label" : ""}>
+                        {match.is_complete ? "Final" : live ? liveLabel(match) : formatMatchTime(match.starts_at)}
+                      </strong>
                     ) : null}
                   </div>
                   {formatVenue(match) ? (
@@ -52,6 +55,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                     selected={selected?.espn_id === teams[0]?.espn_id}
                     disabled={!onPick}
                     result={resultClass(scoring, teams[0])}
+                    score={!pickingMode ? scoreForTeam(match, teams[0]) : null}
                     onSelect={(team) => chooseWinner(match, team)}
                   />
                   <TeamButton
@@ -59,6 +63,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                     selected={selected?.espn_id === teams[1]?.espn_id}
                     disabled={!onPick}
                     result={resultClass(scoring, teams[1])}
+                    score={!pickingMode ? scoreForTeam(match, teams[1]) : null}
                     onSelect={(team) => chooseWinner(match, team)}
                   />
                   {!pickingMode && match.is_complete && match.winner ? (
@@ -75,6 +80,29 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
       ))}
     </section>
   );
+}
+
+function isLiveMatch(match) {
+  if (match.is_complete) return false;
+  const status = (match.status || "").toLowerCase();
+  const hasScore = match.score_one !== null || match.score_two !== null;
+  return hasScore || /live|progress|half|extra|^\d+'?$/.test(status);
+}
+
+function liveLabel(match) {
+  const status = (match.status || "").trim();
+  if (/^\d+'?$/.test(status)) {
+    return status.endsWith("'") ? status : `${status}'`;
+  }
+  if (/half/i.test(status)) return "HT";
+  return "Live";
+}
+
+function scoreForTeam(match, team) {
+  if (!team) return null;
+  if (team.espn_id === match.team_one?.espn_id) return match.score_one;
+  if (team.espn_id === match.team_two?.espn_id) return match.score_two;
+  return null;
 }
 
 function formatMatchTime(value) {

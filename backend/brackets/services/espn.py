@@ -119,7 +119,8 @@ def parse_scoreboard(payload):
             if competitor.get("winner") is True:
                 winner = _team_from_competitor(competitor)
 
-        status = competition.get("status", {}).get("type", {})
+        status_payload = competition.get("status", {})
+        status = status_payload.get("type", {})
         venue = _venue_from_competition(competition)
         parsed.append(
             {
@@ -133,7 +134,7 @@ def parse_scoreboard(payload):
                 "previous_slot_two": fallback_slot.get("previous_slot_two", ""),
                 "team_one": team_one,
                 "team_two": team_two,
-                "status": status.get("description") or status.get("name") or "",
+                "status": _status_label(status_payload),
                 "is_complete": status.get("completed") is True,
                 "winner": winner,
                 "score_one": _score(competitors[0]),
@@ -206,6 +207,22 @@ def _scoreboard_dates():
         if starts_at:
             dates[starts_at.strftime("%Y%m%d")] = True
     return list(dates.keys())
+
+
+def _status_label(status_payload):
+    status_type = status_payload.get("type", {})
+    if status_type.get("completed") is True:
+        return status_type.get("description") or status_type.get("name") or ""
+
+    display_clock = str(status_payload.get("displayClock") or "").strip()
+    if display_clock and display_clock != "0:00":
+        return display_clock
+
+    clock = status_payload.get("clock")
+    if isinstance(clock, (int, float)) and clock > 0:
+        return f"{int(clock)}'"
+
+    return status_type.get("description") or status_type.get("name") or ""
 
 
 def _dedupe_slots(slots):
