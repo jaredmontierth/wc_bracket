@@ -361,6 +361,18 @@ class BracketTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertTrue(Bracket.objects.filter(id=bracket.id).exists())
 
+    def test_created_brackets_are_locked_by_default(self):
+        response = self.client.post(
+            "/api/brackets/",
+            data={"title": "Public Form", "picks": []},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        bracket = Bracket.objects.get(title="Public Form")
+        self.assertTrue(bracket.is_locked)
+        self.assertFalse(response.json()["can_edit"])
+
     def test_delete_with_developer_token(self):
         bracket = Bracket.objects.create(title="Locked Delete", is_locked=True)
         developer_token = signing.TimestampSigner(

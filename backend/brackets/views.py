@@ -66,7 +66,7 @@ def brackets_view(request):
         title = (body.get("title") or "").strip()
         if not title:
             return JsonResponse({"error": "A bracket title is required."}, status=400)
-        bracket = Bracket.objects.create(title=title)
+        bracket = Bracket.objects.create(title=title, is_locked=True)
         upsert_picks(bracket, body.get("picks", []))
         return JsonResponse(bracket_detail_payload(bracket), status=201)
     return JsonResponse({"error": "Unsupported method"}, status=405)
