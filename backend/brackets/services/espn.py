@@ -67,13 +67,8 @@ def fetch_scoreboard(date=None):
 def parse_scoreboard(payload):
     events = payload.get("events", [])
     parsed = []
-    round_positions = {}
 
-    fallback_by_slot = {slot["slot_key"]: slot for slot in fallback_slots()}
-    round_positions = {
-        round_key: 0
-        for round_key in ["r32", "r16", "qf", "sf", "final"]
-    }
+    fallback = fallback_slots()
 
     for event in events:
         competition = (event.get("competitions") or [{}])[0]
@@ -83,23 +78,18 @@ def parse_scoreboard(payload):
 
         round_key, round_name, points, expected_count = _round_from_event(event, competition)
         if not round_key:
+            match_number = _match_number_from_event(event, competition)
+            fallback_slot = _fallback_slot_for_match_number(fallback, match_number)
+            if not fallback_slot:
+                continue
+            round_key = fallback_slot["round_key"]
+            round_name = fallback_slot["round_name"]
+            points = fallback_slot["points"]
+
+        fallback_slot = _fallback_slot_for_event(fallback, round_key, event, competition, competitors)
+        if not fallback_slot:
             continue
 
-        fallback_slot = _fallback_slot_for_competitors(
-            fallback_by_slot.values(), round_key, competitors
-        )
-        if fallback_slot:
-            slot_key = fallback_slot["slot_key"]
-            position = fallback_slot["position"]
-        else:
-            round_positions[round_key] = round_positions.get(round_key, 0) + 1
-            position = round_positions[round_key]
-        if position > expected_count:
-            continue
-
-        slot_key = fallback_slot["slot_key"] if fallback_slot else (
-            "final" if round_key == "final" else f"{round_key}-{position:02d}"
-        )
         team_one = _team_from_competitor(competitors[0])
         team_two = _team_from_competitor(competitors[1])
         winner = None
@@ -110,18 +100,14 @@ def parse_scoreboard(payload):
         status = competition.get("status", {}).get("type", {})
         parsed.append(
             {
-                "slot_key": slot_key,
-                "match_number": fallback_slot.get("match_number") if fallback_slot else None,
+                "slot_key": fallback_slot["slot_key"],
+                "match_number": fallback_slot.get("match_number"),
                 "round_key": round_key,
                 "round_name": round_name,
                 "points": points,
-                "position": position,
-                "previous_slot_one": fallback_slot.get("previous_slot_one", "")
-                if fallback_slot
-                else "",
-                "previous_slot_two": fallback_slot.get("previous_slot_two", "")
-                if fallback_slot
-                else "",
+                "position": fallback_slot["position"],
+                "previous_slot_one": fallback_slot.get("previous_slot_one", ""),
+                "previous_slot_two": fallback_slot.get("previous_slot_two", ""),
                 "team_one": team_one,
                 "team_two": team_two,
                 "status": status.get("description") or status.get("name") or "",
@@ -230,6 +216,24 @@ def _team_from_competitor(competitor):
     }
 
 
+def _fallback_slot_for_event(slots, round_key, event, competition, competitors):
+    match_number = _match_number_from_event(event, competition)
+    if match_number is not None:
+        slot = _fallback_slot_for_match_number(slots, match_number)
+        if slot and slot["round_key"] == round_key:
+            return slot
+    return _fallback_slot_for_competitors(slots, round_key, competitors)
+
+
+def _fallback_slot_for_match_number(slots, match_number):
+    if match_number is None:
+        return None
+    for slot in slots:
+        if slot.get("match_number") == match_number:
+            return slot
+    return None
+
+
 def _fallback_slot_for_competitors(slots, round_key, competitors):
     abbreviations = {
         (competitor.get("team") or {}).get("abbreviation")
@@ -248,6 +252,22 @@ def _fallback_slot_for_competitors(slots, round_key, competitors):
         }
         if team_abbreviations == abbreviations:
             return slot
+    return None
+
+
+def _match_number_from_event(event, competition):
+    candidates = [
+        event.get("name"),
+        event.get("shortName"),
+        event.get("description"),
+        competition.get("notes", [{}])[0].get("headline")
+        if competition.get("notes")
+        else None,
+    ]
+    for candidate in candidates:
+        match = re.search(r"\bmatch\s+(\d{2,3})\b", str(candidate or ""), re.IGNORECASE)
+        if match:
+            return int(match.group(1))
     return None
 
 

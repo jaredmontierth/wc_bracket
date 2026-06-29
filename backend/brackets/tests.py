@@ -31,6 +31,75 @@ class BracketTests(TestCase):
         self.assertIn(mock.call("20260719"), fetch.mock_calls)
         self.assertGreater(fetch.call_count, 1)
 
+    def test_espn_parser_ignores_unmapped_placeholder_events(self):
+        payload = {
+            "events": [
+                {
+                    "id": "placeholder",
+                    "name": "Round of 32 15 Winner vs Round of 32 16 Winner",
+                    "shortName": "Round of 32",
+                    "date": "2026-06-28T19:00Z",
+                    "competitions": [
+                        {
+                            "competitors": [
+                                {
+                                    "team": {
+                                        "abbreviation": "RD32",
+                                        "displayName": "Round of 32 15 Winner",
+                                    }
+                                },
+                                {
+                                    "team": {
+                                        "abbreviation": "RD32",
+                                        "displayName": "Round of 32 16 Winner",
+                                    }
+                                },
+                            ],
+                            "status": {"type": {"description": "Scheduled", "completed": False}},
+                        }
+                    ],
+                }
+            ]
+        }
+
+        parsed = espn.parse_scoreboard(payload)
+
+        self.assertEqual(parsed, [])
+
+    def test_espn_parser_maps_official_match_number(self):
+        payload = {
+            "events": [
+                {
+                    "id": "73",
+                    "name": "South Africa vs Canada - Match 73",
+                    "shortName": "Match 73",
+                    "date": "2026-06-28T19:00Z",
+                    "competitions": [
+                        {
+                            "competitors": [
+                                {
+                                    "score": "0",
+                                    "team": {"abbreviation": "RSA", "displayName": "South Africa"},
+                                },
+                                {
+                                    "score": "1",
+                                    "winner": True,
+                                    "team": {"abbreviation": "CAN", "displayName": "Canada"},
+                                },
+                            ],
+                            "status": {"type": {"description": "Final", "completed": True}},
+                        }
+                    ],
+                }
+            ]
+        }
+
+        parsed = espn.parse_scoreboard(payload)
+
+        self.assertEqual(parsed[0]["slot_key"], "r32-01")
+        self.assertEqual(parsed[0]["match_number"], 73)
+        self.assertEqual(parsed[0]["winner"]["abbreviation"], "CAN")
+
     def test_slug_collision_uses_title(self):
         first = Bracket.objects.create(title="Jared's Bracket")
         second = Bracket.objects.create(title="Jared's Bracket")
