@@ -7,6 +7,7 @@ import threading
 from django.core import signing
 from django.db import transaction
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from brackets.models import Bracket, Invite, InviteSubmission, Match, Pick, site_settings
@@ -111,33 +112,45 @@ def bracket_detail_view(request, slug):
 
 def leaderboard_view(request):
     ensure_matches_available()
-    live_match = _current_live_match()
+    spotlight_match, spotlight_state = _spotlight_match()
     brackets = [bracket_list_payload(bracket) for bracket in Bracket.objects.all()]
-    if live_match:
+    if spotlight_match:
         for bracket_payload in brackets:
-            bracket_payload["live_pick"] = _live_pick_payload(bracket_payload["id"], live_match)
+            bracket_payload["spotlight_pick"] = _spotlight_pick_payload(
+                bracket_payload["id"], spotlight_match
+            )
     brackets.sort(key=lambda item: item["score"]["total"], reverse=True)
+    spotlight_payload = match_payload(spotlight_match) if spotlight_match else None
     return JsonResponse(
         {
             "brackets": brackets,
-            "live_match": match_payload(live_match) if live_match else None,
+            "spotlight_match": spotlight_payload,
+            "spotlight_state": spotlight_state,
+            "live_match": spotlight_payload if spotlight_state == "live" else None,
             "submissions_locked": site_settings().submissions_locked,
         }
     )
 
 
-def _current_live_match():
-    for match in Match.objects.order_by("starts_at", "position"):
-        if match.is_complete:
-            continue
-        status = (match.status or "").lower()
-        if re.search(r"live|progress|half|extra|^[1-9]\d*'?$", status):
-            return match
-    return None
+def _spotlight_match():
+    matches = Match.objects.filter(is_complete=False).order_by("starts_at", "position")
+    for match in matches:
+        if _is_live_match(match):
+            return match, "live"
+    now = timezone.now()
+    for match in matches:
+        if match.starts_at and match.starts_at >= now:
+            return match, "upcoming"
+    return None, ""
 
 
-def _live_pick_payload(bracket_id, live_match):
-    pick = Pick.objects.filter(bracket_id=bracket_id, slot_key=live_match.slot_key).first()
+def _is_live_match(match):
+    status = (match.status or "").lower()
+    return bool(re.search(r"live|progress|half|extra|^[1-9]\d*'?$", status))
+
+
+def _spotlight_pick_payload(bracket_id, spotlight_match):
+    pick = Pick.objects.filter(bracket_id=bracket_id, slot_key=spotlight_match.slot_key).first()
     return pick_payload(pick) if pick else None
 
 

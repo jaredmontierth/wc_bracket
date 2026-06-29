@@ -1,8 +1,10 @@
+from datetime import timedelta
 from unittest import mock
 
 from django.core import signing
 from django.test import RequestFactory, TestCase
 from django.core.management import call_command
+from django.utils import timezone
 
 from brackets.models import Bracket, Invite, InviteSubmission, Match, Pick, Team, site_settings
 from brackets.middleware import DevCorsMiddleware
@@ -599,7 +601,7 @@ class BracketTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"ok": True})
 
-    def test_leaderboard_includes_live_match_and_user_picks(self):
+    def test_leaderboard_includes_spotlight_live_match_and_user_picks(self):
         canada = Team.objects.create(espn_id="CAN", abbreviation="CAN", display_name="Canada")
         netherlands = Team.objects.create(
             espn_id="NED", abbreviation="NED", display_name="Netherlands"
@@ -631,7 +633,42 @@ class BracketTests(TestCase):
         payload = response.json()
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["spotlight_match"]["slot_key"], "r16-01")
+        self.assertEqual(payload["spotlight_state"], "live")
         self.assertEqual(payload["live_match"]["slot_key"], "r16-01")
         by_title = {bracket["title"]: bracket for bracket in payload["brackets"]}
-        self.assertEqual(by_title["Picked"]["live_pick"]["team"]["display_name"], "Canada")
-        self.assertIsNone(by_title["Empty"].get("live_pick"))
+        self.assertEqual(by_title["Picked"]["spotlight_pick"]["team"]["display_name"], "Canada")
+        self.assertIsNone(by_title["Empty"].get("spotlight_pick"))
+
+    def test_leaderboard_includes_next_match_between_live_games(self):
+        brazil = Team.objects.create(espn_id="BRA", abbreviation="BRA", display_name="Brazil")
+        japan = Team.objects.create(espn_id="JPN", abbreviation="JPN", display_name="Japan")
+        Match.objects.create(
+            slot_key="rd32-04",
+            match_number=76,
+            round_key="rd32",
+            round_name="Round of 32",
+            points=25,
+            position=4,
+            status="Scheduled",
+            starts_at=timezone.now() + timedelta(hours=2),
+            team_one=brazil,
+            team_two=japan,
+        )
+        picked = Bracket.objects.create(title="Picked")
+        Pick.objects.create(
+            bracket=picked,
+            slot_key="rd32-04",
+            team_espn_id="BRA",
+            team_abbreviation="BRA",
+            team_display_name="Brazil",
+        )
+
+        response = self.client.get("/api/leaderboard/")
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["spotlight_match"]["slot_key"], "rd32-04")
+        self.assertEqual(payload["spotlight_state"], "upcoming")
+        self.assertIsNone(payload["live_match"])
+        self.assertEqual(payload["brackets"][0]["spotlight_pick"]["team"]["display_name"], "Brazil")

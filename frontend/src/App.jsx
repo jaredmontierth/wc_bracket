@@ -33,7 +33,8 @@ export default function App() {
   const [route, setRoute] = useState(routeFromLocation);
   const [tournament, setTournament] = useState({ matches: [], rounds: [] });
   const [leaderboard, setLeaderboard] = useState([]);
-  const [leaderboardLiveMatch, setLeaderboardLiveMatch] = useState(null);
+  const [leaderboardSpotlightMatch, setLeaderboardSpotlightMatch] = useState(null);
+  const [leaderboardSpotlightState, setLeaderboardSpotlightState] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
@@ -60,7 +61,10 @@ export default function App() {
       ]);
       setTournament(tournamentData);
       setLeaderboard(leaderboardData.brackets);
-      setLeaderboardLiveMatch(leaderboardData.live_match || null);
+      setLeaderboardSpotlightMatch(
+        leaderboardData.spotlight_match || leaderboardData.live_match || null
+      );
+      setLeaderboardSpotlightState(leaderboardData.spotlight_state || "");
       setSubmissionsLockedState(Boolean(leaderboardData.submissions_locked));
     } catch (err) {
       setError(err.message);
@@ -227,7 +231,8 @@ export default function App() {
     return (
       <Leaderboard
         brackets={leaderboard}
-        liveMatch={leaderboardLiveMatch}
+        spotlightMatch={leaderboardSpotlightMatch}
+        spotlightState={leaderboardSpotlightState}
         navigate={navigate}
         loading={loading}
       />
@@ -238,7 +243,8 @@ export default function App() {
     navigate,
     load,
     leaderboard,
-    leaderboardLiveMatch,
+    leaderboardSpotlightMatch,
+    leaderboardSpotlightState,
     loading,
     developerMode,
     developerToken,
