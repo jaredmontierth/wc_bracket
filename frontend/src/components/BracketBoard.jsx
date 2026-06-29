@@ -38,7 +38,9 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                 <article className="match-card" key={match.slot_key}>
                   <div className="match-meta">
                     <span>Match {match.match_number || match.position}</span>
-                    <strong>{match.is_complete ? "Final" : formatMatchTime(match.starts_at)}</strong>
+                    {!pickingMode ? (
+                      <strong>{match.is_complete ? "Final" : formatMatchTime(match.starts_at)}</strong>
+                    ) : null}
                   </div>
                   {formatVenue(match) ? (
                     <div className="match-details">
