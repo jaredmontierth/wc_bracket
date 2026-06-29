@@ -189,6 +189,13 @@ export default function App() {
 
   const currentView = useMemo(() => {
     if (route.page === "new") {
+      if (submissionsLocked) {
+        return (
+          <section className="page-panel">
+            <div className="empty-state">Bracket submissions are locked.</div>
+          </section>
+        );
+      }
       return (
         <NewBracket
           tournament={tournament}
@@ -230,7 +237,17 @@ export default function App() {
         onDelete={onDeleteBracket}
       />
     );
-  }, [route, tournament, navigate, load, leaderboard, loading, developerMode, developerToken]);
+  }, [
+    route,
+    tournament,
+    navigate,
+    load,
+    leaderboard,
+    loading,
+    developerMode,
+    developerToken,
+    submissionsLocked
+  ]);
 
   return (
     <div className="app-shell">
@@ -251,7 +268,12 @@ export default function App() {
           <button className="icon-button" onClick={onSync} aria-label="Sync ESPN" title="Sync ESPN">
             <RefreshCw size={18} className={syncing ? "spin" : ""} />
           </button>
-          <button className="primary-button" onClick={() => navigate("/new")}>
+          <button
+            className="primary-button"
+            disabled={submissionsLocked}
+            onClick={() => navigate("/new")}
+            title={submissionsLocked ? "Bracket submissions are locked" : "New Bracket"}
+          >
             <Plus size={18} />
             New Bracket
           </button>
