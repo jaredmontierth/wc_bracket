@@ -1,5 +1,11 @@
-export default function TeamButton({ team, selected, disabled, result, score, onSelect }) {
-  const className = ["team-button", selected ? "selected" : "", result || ""]
+export default function TeamButton({ team, selected, disabled, result, eliminated, score, onSelect }) {
+  const className = [
+    "team-button",
+    selected ? "selected" : "",
+    !team ? "placeholder" : "",
+    result || "",
+    eliminated ? "eliminated" : ""
+  ]
     .filter(Boolean)
     .join(" ");
   return (

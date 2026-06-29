@@ -156,6 +156,7 @@ export default function BracketDetail({
         picks={picks}
         onPick={editing ? setPicks : null}
         scoringPicks={bracket.score.picks}
+        showActualMismatch={!editing}
       />
     </section>
   );

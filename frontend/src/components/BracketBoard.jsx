@@ -7,13 +7,21 @@ import {
   projectedTeams
 } from "../bracket/structure.js";
 
-export default function BracketBoard({ matches, picks, onPick, scoringPicks = [] }) {
+export default function BracketBoard({
+  matches,
+  picks,
+  onPick,
+  scoringPicks = [],
+  actualMode = false,
+  showActualMismatch = false
+}) {
   const pickingMode = Boolean(onPick);
   const matchesByRound = groupMatches(matches);
   const scoringBySlot = scoringPicks.reduce((map, pick) => {
     map[pick.slot_key] = pick;
     return map;
   }, {});
+  const eliminatedTeamIds = eliminatedTeamsFromScoring(scoringPicks);
 
   const chooseWinner = (match, winner) => {
     if (!onPick) return;
@@ -21,7 +29,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
   };
 
   return (
-    <section className="bracket-board" aria-label="Tournament bracket">
+    <section className={`bracket-board${actualMode ? " actual-mode" : ""}`} aria-label="Tournament bracket">
       {ROUND_KEYS.map((roundKey) => (
         <div className="round-column" key={roundKey}>
           <div className="round-header">
@@ -30,14 +38,18 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
           </div>
           <div className="match-list">
             {(matchesByRound[roundKey] || []).map((match) => {
-              const teams = projectedTeams(match, picks, matchesByRound);
+              const teams = actualMode ? [match.team_one, match.team_two] : projectedTeams(match, picks, matchesByRound);
               const selected = picks[match.slot_key];
               const scoring = scoringBySlot[match.slot_key];
               const winnerScore = winnerFirstScore(match);
               const live = isLiveMatch(match);
               const showScore = !pickingMode && (match.is_complete || live);
+              const actualText = showActualMismatch ? actualMatchText(match, teams, showScore) : "";
+              const cardClass = ["match-card", live ? "live" : "", matchResultClass(scoring, teams, eliminatedTeamIds)]
+                .filter(Boolean)
+                .join(" ");
               return (
-                <article className={`match-card${live ? " live" : ""}`} key={match.slot_key}>
+                <article className={cardClass} key={match.slot_key}>
                   <div className="match-meta">
                     <span>Match {match.match_number || match.position}</span>
                     {!pickingMode ? (
@@ -53,17 +65,19 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                   ) : null}
                   <TeamButton
                     team={teams[0]}
-                    selected={selected?.espn_id === teams[0]?.espn_id}
+                    selected={isSelected(selected, teams[0])}
                     disabled={!onPick}
-                    result={resultClass(scoring, teams[0])}
+                    result={actualResultClass(actualMode, match, teams[0]) || resultClass(scoring, teams[0])}
+                    eliminated={isEliminated(eliminatedTeamIds, teams[0])}
                     score={showScore ? scoreForTeam(match, teams[0]) : null}
                     onSelect={(team) => chooseWinner(match, team)}
                   />
                   <TeamButton
                     team={teams[1]}
-                    selected={selected?.espn_id === teams[1]?.espn_id}
+                    selected={isSelected(selected, teams[1])}
                     disabled={!onPick}
-                    result={resultClass(scoring, teams[1])}
+                    result={actualResultClass(actualMode, match, teams[1]) || resultClass(scoring, teams[1])}
+                    eliminated={isEliminated(eliminatedTeamIds, teams[1])}
                     score={showScore ? scoreForTeam(match, teams[1]) : null}
                     onSelect={(team) => chooseWinner(match, team)}
                   />
@@ -73,6 +87,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                       {winnerScore ? ` ${winnerScore}` : ""}
                     </div>
                   ) : null}
+                  {actualText ? <div className="actual-match-strip">{actualText}</div> : null}
                 </article>
               );
             })}
@@ -81,6 +96,49 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
       ))}
     </section>
   );
+}
+
+function eliminatedTeamsFromScoring(scoringPicks) {
+  return new Set(
+    scoringPicks
+      .filter((pick) => pick.correct === false && pick.team?.espn_id)
+      .map((pick) => pick.team.espn_id)
+  );
+}
+
+function isEliminated(eliminatedTeamIds, team) {
+  return Boolean(team?.espn_id && eliminatedTeamIds.has(team.espn_id));
+}
+
+function isSelected(selected, team) {
+  return Boolean(selected?.espn_id && team?.espn_id && selected.espn_id === team.espn_id);
+}
+
+function matchResultClass(scoring, teams, eliminatedTeamIds) {
+  if (scoring?.correct === true) return "correct";
+  if (scoring?.correct === false) return "incorrect";
+  const presentTeams = teams.filter(Boolean);
+  if (
+    presentTeams.length === 2 &&
+    presentTeams.every((team) => isEliminated(eliminatedTeamIds, team))
+  ) {
+    return "incorrect";
+  }
+  return "";
+}
+
+function actualMatchText(match, projectedTeamsForCard, showScore) {
+  if (!match.team_one || !match.team_two) return "";
+  const projected = projectedTeamsForCard.filter(Boolean);
+  if (projected.length !== 2) return "";
+  const projectedIds = projected.map((team) => team.espn_id).sort().join("|");
+  const actualIds = [match.team_one.espn_id, match.team_two.espn_id].sort().join("|");
+  if (projectedIds === actualIds) return "";
+
+  const teamOneScore = showScore && match.score_one !== null && match.score_one !== undefined ? ` ${match.score_one}` : "";
+  const teamTwoScore = showScore && match.score_two !== null && match.score_two !== undefined ? `${match.score_two} ` : "";
+  const separator = showScore && (teamOneScore || teamTwoScore) ? "-" : " vs ";
+  return `Actual: ${match.team_one.display_name}${teamOneScore}${separator}${teamTwoScore}${match.team_two.display_name}`;
 }
 
 function isLiveMatch(match) {
@@ -125,6 +183,11 @@ function resultClass(scoring, team) {
   if (!scoring || scoring.correct === null || !team) return "";
   if (scoring.team.espn_id !== team.espn_id) return "";
   return scoring.correct ? "correct" : "incorrect";
+}
+
+function actualResultClass(actualMode, match, team) {
+  if (!actualMode || !match.is_complete || !match.winner || !team) return "";
+  return match.winner.espn_id === team.espn_id ? "winner" : "";
 }
 
 function winnerFirstScore(match) {

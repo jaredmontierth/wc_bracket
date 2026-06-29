@@ -192,6 +192,31 @@ p {
   margin: 0;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 14px 20px 0;
+  width: 100%;
+}
+
+.view-tabs button {
+  background: #ffffff;
+  border: 1px solid #dce3e1;
+  border-radius: 8px;
+  color: #5d6c68;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.view-tabs button.active {
+  background: #17211f;
+  border-color: #17211f;
+  color: #ffffff;
+}
+
 .leaderboard {
   background: #ffffff;
   border: 1px solid #dce3e1;
@@ -625,7 +650,20 @@ p {
   border-color: #c90000;
 }
 
+.match-card.correct {
+  border-color: #00ac33;
+}
+
+.match-card.incorrect {
+  background: #f3e3e3;
+  border-color: #c90000;
+}
+
 .match-card.live .team-button:disabled {
+  opacity: 1;
+}
+
+.bracket-board.actual-mode .team-button:disabled {
   opacity: 1;
 }
 
@@ -671,6 +709,17 @@ p {
   justify-content: flex-start;
 }
 
+.actual-match-strip {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #d8caca;
+  border-radius: 8px;
+  color: #53635f;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  padding: 7px 8px;
+}
+
 .team-button {
   align-items: center;
   background: #f7f9f9;
@@ -688,18 +737,29 @@ p {
 
 .team-button:hover:not(:disabled),
 .team-button.selected {
-  background: #e6f1ed;
-  border-color: #0a6a4f;
+  background: #eaf4ff;
+  border-color: #78aee8;
 }
 
-.team-button.correct {
-  background: #e8f7ec;
-  border-color: #28a35d;
+.team-button.correct,
+.team-button.winner {
+  background: #e6f1ed;
+  border-color: #00ac33;
 }
 
 .team-button.incorrect {
-  background: #fff1ed;
-  border-color: #e2795f;
+  background: #f3e3e3;
+  border-color: #c90000;
+}
+
+.team-button.eliminated {
+  background: #f3e3e3;
+  border-color: #c90000;
+}
+
+.team-button.eliminated .team-name {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
 }
 
 .team-button img,

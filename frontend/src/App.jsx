@@ -14,6 +14,7 @@ import {
 } from "./api/client.js";
 import SettingsPanel from "./components/SettingsPanel.jsx";
 import Leaderboard from "./pages/Leaderboard.jsx";
+import LiveBracket from "./pages/LiveBracket.jsx";
 import BracketDetail from "./pages/BracketDetail.jsx";
 import NewBracket from "./pages/NewBracket.jsx";
 import InviteBracket from "./pages/InviteBracket.jsx";
@@ -21,6 +22,7 @@ import InviteBracket from "./pages/InviteBracket.jsx";
 function routeFromLocation() {
   const path = window.location.pathname;
   if (path === "/new") return { page: "new" };
+  if (path === "/live") return { page: "live" };
   const inviteMatch = path.match(/^\/invite\/([^/]+)/);
   if (inviteMatch) return { page: "invite", token: inviteMatch[1] };
   const match = path.match(/^\/brackets\/([^/]+)/);
@@ -228,6 +230,9 @@ export default function App() {
         />
       );
     }
+    if (route.page === "live") {
+      return <LiveBracket tournament={tournament} />;
+    }
     return (
       <Leaderboard
         brackets={leaderboard}
@@ -296,6 +301,22 @@ export default function App() {
         />
       ) : null}
       {error ? <div className="error-banner">{error}</div> : null}
+      {["leaderboard", "live"].includes(route.page) ? (
+        <nav className="view-tabs" aria-label="Main views">
+          <button
+            className={route.page === "leaderboard" ? "active" : ""}
+            onClick={() => navigate("/")}
+          >
+            Leaderboard
+          </button>
+          <button
+            className={route.page === "live" ? "active" : ""}
+            onClick={() => navigate("/live")}
+          >
+            Live Bracket
+          </button>
+        </nav>
+      ) : null}
       <main>{currentView}</main>
     </div>
   );
