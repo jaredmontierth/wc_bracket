@@ -10,8 +10,6 @@ $Root = Resolve-Path (Join-Path $ScriptDir "..")
 $StartScript = Join-Path $ScriptDir "start-cloudflare-windows.ps1"
 $LocalEnv = Join-Path $ScriptDir "windows-local-env.ps1"
 $LogsDir = Join-Path $Root "logs"
-$OutLog = Join-Path $LogsDir "bracket-server.out.log"
-$ErrLog = Join-Path $LogsDir "bracket-server.err.log"
 
 if (Test-Path $LocalEnv) {
     . $LocalEnv
@@ -35,20 +33,21 @@ $listeners = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction Sil
 $processIds = $listeners | Select-Object -ExpandProperty OwningProcess -Unique
 foreach ($processId in $processIds) {
     if ($processId) {
-        Stop-Process -Id $processId -Force
+        taskkill /PID $processId /T /F | Out-Null
         Write-Host "Stopped process $processId on port 8000."
     }
 }
 
 New-Item -ItemType Directory -Force $LogsDir | Out-Null
 
-if (Test-Path $OutLog) {
-    Remove-Item $OutLog -Force
-}
+$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$OutLog = Join-Path $LogsDir "bracket-server-$timestamp.out.log"
+$ErrLog = Join-Path $LogsDir "bracket-server-$timestamp.err.log"
+$LatestOutLog = Join-Path $LogsDir "bracket-server.out.log"
+$LatestErrLog = Join-Path $LogsDir "bracket-server.err.log"
 
-if (Test-Path $ErrLog) {
-    Remove-Item $ErrLog -Force
-}
+Set-Content -Path $LatestOutLog -Value $OutLog
+Set-Content -Path $LatestErrLog -Value $ErrLog
 
 $arguments = @(
     "-NoProfile",
@@ -69,4 +68,6 @@ $process = Start-Process `
 Write-Host "Started bracket app process $($process.Id)."
 Write-Host "Output log: $OutLog"
 Write-Host "Error log:  $ErrLog"
+Write-Host "Latest output path file: $LatestOutLog"
+Write-Host "Latest error path file:  $LatestErrLog"
 Write-Host "Check status with: netstat -ano | findstr :8000"

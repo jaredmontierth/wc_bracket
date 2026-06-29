@@ -111,7 +111,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\update-cloudflare-
 ```
 
 The update script runs `git pull`, stops whatever is listening on port `8000`,
-and starts the app again in the background. Logs are written to `logs\`.
+and starts the app again in the background. Timestamped logs are written to
+`logs\`; `logs\bracket-server.out.log` and `logs\bracket-server.err.log`
+contain the latest log file paths.
 
 ### Create the Tunnel
 
