@@ -1,0 +1,24 @@
+databases:
+  - name: worldcup-bracket-db
+
+services:
+  - type: web
+    name: worldcup-bracket
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: cd backend && gunicorn worldcup.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: BRACKET_DEV_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: worldcup-bracket-db
+          property: connectionString
