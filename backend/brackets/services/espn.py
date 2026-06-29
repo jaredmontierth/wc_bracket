@@ -1,6 +1,8 @@
 import json
 import re
+from collections import OrderedDict
 from urllib.error import URLError
+from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from django.utils.dateparse import parse_datetime
@@ -29,9 +31,11 @@ ROUND_ORDER = {"r32": 1, "r16": 2, "qf": 3, "sf": 4, "final": 5}
 
 
 def sync_matches():
-    payload = fetch_scoreboard()
-    parsed_slots = parse_scoreboard(payload) if payload else []
+    parsed_slots = []
+    for payload in fetch_scoreboards():
+        parsed_slots.extend(parse_scoreboard(payload))
     if parsed_slots:
+        parsed_slots = _dedupe_slots(parsed_slots)
         upsert_slots(_merge_with_fallback(parsed_slots))
         return {"source": "espn", "matches": len(parsed_slots)}
 
@@ -40,9 +44,21 @@ def sync_matches():
     return {"source": "fallback", "matches": len(fallback)}
 
 
-def fetch_scoreboard():
+def fetch_scoreboards():
+    payloads = []
+    for date in _scoreboard_dates():
+        payload = fetch_scoreboard(date)
+        if payload:
+            payloads.append(payload)
+    return payloads
+
+
+def fetch_scoreboard(date=None):
+    url = ESPN_SCOREBOARD_URL
+    if date:
+        url = f"{url}?{urlencode({'dates': date})}"
     try:
-        with urlopen(ESPN_SCOREBOARD_URL, timeout=12) as response:
+        with urlopen(url, timeout=12) as response:
             return json.loads(response.read().decode("utf-8"))
     except (OSError, URLError, json.JSONDecodeError):
         return None
@@ -162,6 +178,22 @@ def _merge_with_fallback(parsed_slots):
     for parsed_slot in parsed_slots:
         fallback_slot = by_slot.get(parsed_slot["slot_key"], {})
         by_slot[parsed_slot["slot_key"]] = {**fallback_slot, **parsed_slot}
+    return list(by_slot.values())
+
+
+def _scoreboard_dates():
+    dates = OrderedDict()
+    for slot in fallback_slots():
+        starts_at = slot.get("starts_at")
+        if starts_at:
+            dates[starts_at.strftime("%Y%m%d")] = True
+    return list(dates.keys())
+
+
+def _dedupe_slots(slots):
+    by_slot = OrderedDict()
+    for slot in slots:
+        by_slot[slot["slot_key"]] = slot
     return list(by_slot.values())
 
 

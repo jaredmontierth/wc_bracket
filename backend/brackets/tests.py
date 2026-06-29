@@ -6,6 +6,7 @@ from django.core.management import call_command
 
 from brackets.models import Bracket, Invite, InviteSubmission, Match, Pick, Team, site_settings
 from brackets.middleware import DevCorsMiddleware
+from brackets.services import espn
 from brackets.services.scoring import score_bracket
 from brackets.services.fallback import fallback_slots
 
@@ -20,6 +21,15 @@ class BracketTests(TestCase):
         self.assertEqual(slots[97]["previous_slot_two"], "r16-01")
         self.assertEqual(slots[104]["previous_slot_one"], "sf-01")
         self.assertEqual(slots[104]["previous_slot_two"], "sf-02")
+
+    def test_espn_sync_fetches_each_knockout_date(self):
+        with mock.patch("brackets.services.espn.fetch_scoreboard", return_value=None) as fetch:
+            payloads = espn.fetch_scoreboards()
+
+        self.assertEqual(payloads, [])
+        self.assertIn(mock.call("20260628"), fetch.mock_calls)
+        self.assertIn(mock.call("20260719"), fetch.mock_calls)
+        self.assertGreater(fetch.call_count, 1)
 
     def test_slug_collision_uses_title(self):
         first = Bracket.objects.create(title="Jared's Bracket")

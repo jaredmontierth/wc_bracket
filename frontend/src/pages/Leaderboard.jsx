@@ -1,7 +1,7 @@
 import ScorePill from "../components/ScorePill.jsx";
 import { Trash2 } from "lucide-react";
 
-export default function Leaderboard({ brackets, navigate, loading, developerMode, onDelete }) {
+export default function Leaderboard({ brackets, navigate, loading, onDelete }) {
   const ranks = tiedRanks(brackets);
 
   return (
@@ -38,7 +38,7 @@ export default function Leaderboard({ brackets, navigate, loading, developerMode
               MAX {bracket.score.max_possible}
             </span>
             <ScorePill score={bracket.score} />
-            {developerMode ? (
+            {!bracket.is_locked ? (
               <button
                 className="icon-danger-button"
                 aria-label={`Delete ${bracket.title}`}
