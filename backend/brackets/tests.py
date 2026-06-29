@@ -592,3 +592,9 @@ class BracketTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertIn("RuntimeError: boom", response.content.decode())
+
+    def test_health_endpoint_is_lightweight(self):
+        response = self.client.get("/api/health/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True})

@@ -115,6 +115,31 @@ and starts the app again in the background. Timestamped logs are written to
 `logs\`; `logs\bracket-server.out.log` and `logs\bracket-server.err.log`
 contain the latest log file paths.
 
+To inspect the latest server logs from SSH:
+
+```powershell
+Get-Content (Get-Content .\logs\bracket-server.err.log) -Tail 80
+Get-Content (Get-Content .\logs\bracket-server.out.log) -Tail 80
+```
+
+### Auto-Restart If The Local Server Dies
+
+Cloudflare 503s usually mean the tunnel is up but the local origin at
+`http://127.0.0.1:8000` is not responding. Install the watchdog scheduled task
+from an administrator PowerShell in the project folder:
+
+```powershell
+$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$PWD\scripts\healthcheck-cloudflare-windows.ps1`""
+$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1)
+$Principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+Register-ScheduledTask -TaskName "World Cup Bracket Watchdog" -Action $Action -Trigger $Trigger -Principal $Principal -Description "Restart the bracket app if localhost health checks fail."
+```
+
+The watchdog writes to `logs\watchdog.log` and restarts the app with
+`scripts\update-cloudflare-windows.ps1 -SkipGitPull` only when
+`/api/health/` fails. Also disable sleep on the Windows host so the PC does not
+pause the local server overnight.
+
 ### Create the Tunnel
 
 For a stable invite URL, create a named Cloudflare Tunnel and route a public

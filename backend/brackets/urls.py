@@ -3,6 +3,7 @@ from django.urls import path
 from brackets import views
 
 urlpatterns = [
+    path("health/", views.health_view),
     path("matches/", views.matches_view),
     path("sync-espn/", views.sync_view),
     path("brackets/", views.brackets_view),

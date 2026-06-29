@@ -43,8 +43,8 @@ $env:DEBUG = "False"
 $env:SECURE_SSL_REDIRECT = "False"
 
 if ($PublicHostname) {
-    $env:ALLOWED_HOSTS = "localhost,127.0.0.1,$PublicHostname"
-    $env:CSRF_TRUSTED_ORIGINS = "https://$PublicHostname"
+    $env:ALLOWED_HOSTS = "localhost,127.0.0.1,.trycloudflare.com,$PublicHostname"
+    $env:CSRF_TRUSTED_ORIGINS = "https://*.trycloudflare.com,https://$PublicHostname"
 }
 else {
     $env:ALLOWED_HOSTS = "localhost,127.0.0.1,.trycloudflare.com"

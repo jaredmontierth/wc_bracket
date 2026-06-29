@@ -22,6 +22,10 @@ DEV_TOKEN_SALT = "world-cup-bracket-dev-mode"
 DEV_TOKEN_MAX_AGE = 60 * 60 * 12
 
 
+def health_view(request):
+    return JsonResponse({"ok": True})
+
+
 def options_ok(request):
     if request.method == "OPTIONS":
         return JsonResponse({})
