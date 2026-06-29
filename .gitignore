@@ -5,6 +5,8 @@ __pycache__/
 db.sqlite3
 backend/db.sqlite3
 backend/staticfiles/
+logs/
+scripts/windows-local-env.ps1
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/

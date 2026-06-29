@@ -8,6 +8,15 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root = Resolve-Path (Join-Path $ScriptDir "..")
 $Backend = Join-Path $Root "backend"
 $VenvPython = Join-Path $Root ".venv\Scripts\python.exe"
+$LocalEnv = Join-Path $ScriptDir "windows-local-env.ps1"
+
+if (Test-Path $LocalEnv) {
+    . $LocalEnv
+}
+
+if (-not $PublicHostname -and $env:BRACKET_PUBLIC_HOSTNAME) {
+    $PublicHostname = $env:BRACKET_PUBLIC_HOSTNAME
+}
 
 Set-Location $Root
 

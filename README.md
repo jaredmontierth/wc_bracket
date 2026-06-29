@@ -91,6 +91,28 @@ For a temporary Cloudflare quick tunnel, omit `-PublicHostname`:
 .\scripts\start-cloudflare-windows.ps1
 ```
 
+### Pull Updates and Restart Over SSH
+
+On the Windows PC, copy the example local config once:
+
+```powershell
+Copy-Item .\scripts\windows-local-env.example.ps1 .\scripts\windows-local-env.ps1
+notepad .\scripts\windows-local-env.ps1
+```
+
+Set your real `BRACKET_PUBLIC_HOSTNAME`, `BRACKET_DEV_PASSWORD`, and
+`SECRET_KEY`. The `windows-local-env.ps1` file is ignored by git.
+
+After that, from SSH you can update and restart with:
+
+```powershell
+cd C:\Users\YOURUSER\Documents\YOUR-REPO
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\update-cloudflare-windows.ps1
+```
+
+The update script runs `git pull`, stops whatever is listening on port `8000`,
+and starts the app again in the background. Logs are written to `logs\`.
+
 ### Create the Tunnel
 
 For a stable invite URL, create a named Cloudflare Tunnel and route a public
