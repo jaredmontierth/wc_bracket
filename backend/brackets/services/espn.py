@@ -121,6 +121,8 @@ def parse_scoreboard(payload):
 
         status_payload = competition.get("status", {})
         status = status_payload.get("type", {})
+        is_complete = status.get("completed") is True
+        has_live_status = _is_live_status(status_payload)
         venue = _venue_from_competition(competition)
         parsed.append(
             {
@@ -135,10 +137,10 @@ def parse_scoreboard(payload):
                 "team_one": team_one,
                 "team_two": team_two,
                 "status": _status_label(status_payload),
-                "is_complete": status.get("completed") is True,
+                "is_complete": is_complete,
                 "winner": winner,
-                "score_one": _score(competitors[0]),
-                "score_two": _score(competitors[1]),
+                "score_one": _score(competitors[0], has_live_status or is_complete),
+                "score_two": _score(competitors[1], has_live_status or is_complete),
                 "source": "espn",
                 "source_event_id": str(event.get("id", "")),
                 "starts_at": parse_datetime(event.get("date", "")) if event.get("date") else None,
@@ -215,7 +217,7 @@ def _status_label(status_payload):
         return status_type.get("description") or status_type.get("name") or ""
 
     display_clock = str(status_payload.get("displayClock") or "").strip()
-    if display_clock and display_clock != "0:00":
+    if _is_live_clock(display_clock):
         return display_clock
 
     clock = status_payload.get("clock")
@@ -223,6 +225,19 @@ def _status_label(status_payload):
         return f"{int(clock)}'"
 
     return status_type.get("description") or status_type.get("name") or ""
+
+
+def _is_live_status(status_payload):
+    status_type = status_payload.get("type", {})
+    description = str(status_type.get("description") or status_type.get("name") or "").lower()
+    return _is_live_clock(str(status_payload.get("displayClock") or "").strip()) or any(
+        phrase in description for phrase in ("live", "progress", "half", "extra")
+    )
+
+
+def _is_live_clock(value):
+    normalized = value.strip()
+    return bool(normalized and normalized not in ("0'", "0:00") and re.match(r"^[1-9]\d*'?$", normalized))
 
 
 def _dedupe_slots(slots):
@@ -359,7 +374,9 @@ def _upsert_team(team_payload):
     return team
 
 
-def _score(competitor):
+def _score(competitor, include_score=True):
+    if not include_score:
+        return None
     score = competitor.get("score")
     if score in (None, ""):
         return None

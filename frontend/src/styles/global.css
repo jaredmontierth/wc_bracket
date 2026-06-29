@@ -625,6 +625,10 @@ p {
   border-color: #c90000;
 }
 
+.match-card.live .team-button:disabled {
+  opacity: 1;
+}
+
 .match-meta,
 .match-result {
   align-items: center;

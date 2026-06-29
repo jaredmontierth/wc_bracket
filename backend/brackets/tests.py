@@ -153,6 +153,47 @@ class BracketTests(TestCase):
         self.assertEqual(parsed[0]["score_one"], 2)
         self.assertEqual(parsed[0]["score_two"], 1)
 
+    def test_espn_parser_ignores_pregame_zero_clock_and_scores(self):
+        payload = {
+            "events": [
+                {
+                    "id": "75",
+                    "name": "Netherlands vs Morocco - Match 75",
+                    "shortName": "Match 75",
+                    "date": "2026-06-30T01:00Z",
+                    "competitions": [
+                        {
+                            "venue": {
+                                "fullName": "Estadio BBVA",
+                                "address": {"city": "Guadalupe", "state": "NL"},
+                            },
+                            "competitors": [
+                                {
+                                    "score": "0",
+                                    "team": {"abbreviation": "NED", "displayName": "Netherlands"},
+                                },
+                                {
+                                    "score": "0",
+                                    "team": {"abbreviation": "MAR", "displayName": "Morocco"},
+                                },
+                            ],
+                            "status": {
+                                "displayClock": "0'",
+                                "type": {"description": "Scheduled", "completed": False},
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        parsed = espn.parse_scoreboard(payload)
+
+        self.assertEqual(parsed[0]["slot_key"], "r32-02")
+        self.assertEqual(parsed[0]["status"], "Scheduled")
+        self.assertIsNone(parsed[0]["score_one"])
+        self.assertIsNone(parsed[0]["score_two"])
+
     def test_espn_merge_keeps_canonical_fallback_venue_format(self):
         merged = espn._merge_with_fallback(
             [

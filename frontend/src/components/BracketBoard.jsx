@@ -35,6 +35,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
               const scoring = scoringBySlot[match.slot_key];
               const winnerScore = winnerFirstScore(match);
               const live = isLiveMatch(match);
+              const showScore = !pickingMode && (match.is_complete || live);
               return (
                 <article className={`match-card${live ? " live" : ""}`} key={match.slot_key}>
                   <div className="match-meta">
@@ -55,7 +56,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                     selected={selected?.espn_id === teams[0]?.espn_id}
                     disabled={!onPick}
                     result={resultClass(scoring, teams[0])}
-                    score={!pickingMode ? scoreForTeam(match, teams[0]) : null}
+                    score={showScore ? scoreForTeam(match, teams[0]) : null}
                     onSelect={(team) => chooseWinner(match, team)}
                   />
                   <TeamButton
@@ -63,7 +64,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
                     selected={selected?.espn_id === teams[1]?.espn_id}
                     disabled={!onPick}
                     result={resultClass(scoring, teams[1])}
-                    score={!pickingMode ? scoreForTeam(match, teams[1]) : null}
+                    score={showScore ? scoreForTeam(match, teams[1]) : null}
                     onSelect={(team) => chooseWinner(match, team)}
                   />
                   {!pickingMode && match.is_complete && match.winner ? (
@@ -85,8 +86,7 @@ export default function BracketBoard({ matches, picks, onPick, scoringPicks = []
 function isLiveMatch(match) {
   if (match.is_complete) return false;
   const status = (match.status || "").toLowerCase();
-  const hasScore = match.score_one !== null || match.score_two !== null;
-  return hasScore || /live|progress|half|extra|^\d+'?$/.test(status);
+  return /live|progress|half|extra|^[1-9]\d*'?$/.test(status);
 }
 
 function liveLabel(match) {
