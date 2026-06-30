@@ -411,6 +411,124 @@ class BracketTests(TestCase):
             ["r32", "final"],
         )
 
+    def test_max_possible_excludes_future_picks_for_eliminated_teams(self):
+        germany = Team.objects.create(espn_id="GER", abbreviation="GER", display_name="Germany")
+        paraguay = Team.objects.create(espn_id="PAR", abbreviation="PAR", display_name="Paraguay")
+        france = Team.objects.create(espn_id="FRA", abbreviation="FRA", display_name="France")
+        sweden = Team.objects.create(espn_id="SWE", abbreviation="SWE", display_name="Sweden")
+        Match.objects.create(
+            slot_key="r32-03",
+            match_number=74,
+            round_key="r32",
+            round_name="Round of 32",
+            points=25,
+            position=3,
+            is_complete=True,
+            team_one=germany,
+            team_two=paraguay,
+            winner=paraguay,
+        )
+        Match.objects.create(
+            slot_key="r32-04",
+            match_number=77,
+            round_key="r32",
+            round_name="Round of 32",
+            points=25,
+            position=4,
+            team_one=france,
+            team_two=sweden,
+        )
+        Match.objects.create(
+            slot_key="r16-02",
+            match_number=89,
+            round_key="r16",
+            round_name="Round of 16",
+            points=50,
+            position=2,
+            previous_slot_one="r32-03",
+            previous_slot_two="r32-04",
+        )
+        Match.objects.create(
+            slot_key="qf-01",
+            match_number=97,
+            round_key="qf",
+            round_name="Quarterfinals",
+            points=100,
+            position=1,
+            previous_slot_one="r16-02",
+        )
+        bracket = Bracket.objects.create(title="Germany Run")
+        for slot_key in ("r32-03", "r16-02", "qf-01"):
+            Pick.objects.create(
+                bracket=bracket,
+                slot_key=slot_key,
+                team_espn_id="GER",
+                team_abbreviation="GER",
+                team_display_name="Germany",
+            )
+
+        score = score_bracket(bracket)
+
+        self.assertEqual(score["total"], 0)
+        self.assertEqual(score["possible_remaining"], 0)
+        self.assertEqual(score["max_possible"], 0)
+        by_slot = {pick["slot_key"]: pick for pick in score["picks"]}
+        self.assertFalse(by_slot["r32-03"]["possible"])
+        self.assertFalse(by_slot["r16-02"]["possible"])
+        self.assertFalse(by_slot["qf-01"]["possible"])
+
+    def test_max_possible_keeps_future_pick_alive_for_team_still_in_path(self):
+        germany = Team.objects.create(espn_id="GER", abbreviation="GER", display_name="Germany")
+        paraguay = Team.objects.create(espn_id="PAR", abbreviation="PAR", display_name="Paraguay")
+        france = Team.objects.create(espn_id="FRA", abbreviation="FRA", display_name="France")
+        sweden = Team.objects.create(espn_id="SWE", abbreviation="SWE", display_name="Sweden")
+        Match.objects.create(
+            slot_key="r32-03",
+            match_number=74,
+            round_key="r32",
+            round_name="Round of 32",
+            points=25,
+            position=3,
+            is_complete=True,
+            team_one=germany,
+            team_two=paraguay,
+            winner=paraguay,
+        )
+        Match.objects.create(
+            slot_key="r32-04",
+            match_number=77,
+            round_key="r32",
+            round_name="Round of 32",
+            points=25,
+            position=4,
+            team_one=france,
+            team_two=sweden,
+        )
+        Match.objects.create(
+            slot_key="r16-02",
+            match_number=89,
+            round_key="r16",
+            round_name="Round of 16",
+            points=50,
+            position=2,
+            previous_slot_one="r32-03",
+            previous_slot_two="r32-04",
+        )
+        bracket = Bracket.objects.create(title="Paraguay Alive")
+        Pick.objects.create(
+            bracket=bracket,
+            slot_key="r16-02",
+            team_espn_id="PAR",
+            team_abbreviation="PAR",
+            team_display_name="Paraguay",
+        )
+
+        score = score_bracket(bracket)
+
+        self.assertEqual(score["possible_remaining"], 50)
+        self.assertEqual(score["max_possible"], 50)
+        self.assertTrue(score["picks"][0]["possible"])
+
     def test_invite_submission_is_one_per_device(self):
         invite = Invite.objects.create(name="Office Pool")
         bracket = Bracket.objects.create(title="Locked", is_locked=True)
