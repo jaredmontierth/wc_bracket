@@ -67,7 +67,7 @@ def brackets_view(request):
     ensure_matches_available()
     if request.method == "GET":
         brackets = [bracket_list_payload(bracket) for bracket in Bracket.objects.all()]
-        brackets.sort(key=lambda item: item["score"]["total"], reverse=True)
+        brackets.sort(key=_leaderboard_sort_key)
         return JsonResponse({"brackets": brackets})
     if request.method == "POST":
         body = _json_body(request)
@@ -119,7 +119,7 @@ def leaderboard_view(request):
             bracket_payload["spotlight_pick"] = _spotlight_pick_payload(
                 bracket_payload["id"], spotlight_match
             )
-    brackets.sort(key=lambda item: item["score"]["total"], reverse=True)
+    brackets.sort(key=_leaderboard_sort_key)
     spotlight_payload = match_payload(spotlight_match) if spotlight_match else None
     return JsonResponse(
         {
@@ -142,6 +142,11 @@ def _spotlight_match():
         if match.starts_at and match.starts_at >= now:
             return match, "upcoming"
     return None, ""
+
+
+def _leaderboard_sort_key(item):
+    score = item["score"]
+    return (-score["total"], -score["max_possible"], item["title"].lower())
 
 
 def _is_live_match(match):

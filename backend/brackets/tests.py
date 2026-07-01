@@ -861,3 +861,58 @@ class BracketTests(TestCase):
         self.assertEqual(payload["spotlight_state"], "upcoming")
         self.assertIsNone(payload["live_match"])
         self.assertEqual(payload["brackets"][0]["spotlight_pick"]["team"]["display_name"], "Brazil")
+
+    def test_leaderboard_breaks_score_ties_by_max_possible(self):
+        canada = Team.objects.create(espn_id="CAN", abbreviation="CAN", display_name="Canada")
+        south_africa = Team.objects.create(
+            espn_id="RSA", abbreviation="RSA", display_name="South Africa"
+        )
+        Match.objects.create(
+            slot_key="r32-01",
+            match_number=73,
+            round_key="r32",
+            round_name="Round of 32",
+            points=25,
+            position=1,
+            is_complete=True,
+            team_one=south_africa,
+            team_two=canada,
+            winner=canada,
+        )
+        Match.objects.create(
+            slot_key="r16-01",
+            match_number=90,
+            round_key="r16",
+            round_name="Round of 16",
+            points=50,
+            position=1,
+            previous_slot_one="r32-01",
+        )
+        higher_max = Bracket.objects.create(title="Higher Max")
+        lower_max = Bracket.objects.create(title="Lower Max")
+        for bracket in (higher_max, lower_max):
+            Pick.objects.create(
+                bracket=bracket,
+                slot_key="r32-01",
+                team_espn_id="CAN",
+                team_abbreviation="CAN",
+                team_display_name="Canada",
+            )
+        Pick.objects.create(
+            bracket=higher_max,
+            slot_key="r16-01",
+            team_espn_id="CAN",
+            team_abbreviation="CAN",
+            team_display_name="Canada",
+        )
+
+        response = self.client.get("/api/leaderboard/")
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["brackets"][0]["title"], "Higher Max")
+        self.assertEqual(payload["brackets"][0]["score"]["total"], 25)
+        self.assertEqual(payload["brackets"][0]["score"]["max_possible"], 75)
+        self.assertEqual(payload["brackets"][1]["title"], "Lower Max")
+        self.assertEqual(payload["brackets"][1]["score"]["total"], 25)
+        self.assertEqual(payload["brackets"][1]["score"]["max_possible"], 25)
